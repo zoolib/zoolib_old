@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------------------------------
-Copyright (c) 2003 Andrew Green and Learning in Motion, Inc.
+Copyright (c) 2002 Andrew Green and Learning in Motion, Inc.
 http://www.zoolib.org
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
@@ -18,40 +18,43 @@ OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------------------------- */
 
-#ifndef __ZStream_JNI_h__
-#define __ZStream_JNI_h__ 1
+#include "zoolib/ZMacOSX.h"
+
 #include "zoolib/ZCONFIG_SPI.h"
 
-#include "zoolib/ZStream.h"
-
-#if ZCONFIG_SPI_Enabled(JNI)
-
-#include <jni.h>
+#if ZCONFIG_SPI_Enabled(Carbon64)
+	#include ZMACINCLUDE3(CoreServices,CarbonCore,Gestalt.h)
+	#if !ZCONFIG_SPI_Enabled(MacOSX)
+		static bool sIsMacOSX_Checked;
+		static bool sIsMacOSX_Value;
+	#endif
+#endif
 
 namespace ZooLib {
 
-// =================================================================================================
-// MARK: - ZStreamR_JNI
-
-/// A read stream that sources data from a java.io.InputStream.
-
-class ZStreamR_JNI : public ZStreamR
+bool ZMacOSX::sIsMacOSX()
 	{
-public:
-	ZStreamR_JNI(JNIEnv* iEnv, jobject iJavaStream);
-	~ZStreamR_JNI();
+	#if ZCONFIG_SPI_Enabled(MacOSX)
 
-// From ZStreamR
-	virtual void Imp_Read(void* iDest, size_t iCount, size_t* oCountRead);
-	virtual size_t Imp_CountReadable();
+		return true;
 
-private:
-	jobject fJavaStream;
-	JNIEnv* fEnv;
-	};
+	#elif ZCONFIG_SPI_Enabled(Carbon64)
+
+		if (not sIsMacOSX_Checked)
+			{
+			UInt32 systemVersion;
+			OSErr err = ::Gestalt(gestaltSystemVersion, (SInt32*)&systemVersion);
+			if (err == noErr && systemVersion >= 0x01000)
+				sIsMacOSX_Value = true;
+			sIsMacOSX_Checked = true;
+			}
+		return sIsMacOSX_Value;
+
+	#else
+
+		return false;
+
+	#endif
+	}
 
 } // namespace ZooLib
-
-#endif // ZCONFIG_SPI_Enabled(JNI)
-
-#endif // __ZStream_JNI_h__
